@@ -1,0 +1,323 @@
+% GPMN DSGE Workshop - Plain-Vanilla DSGE Model
+
+!transition-variables
+    "Private Consumption" C
+    "Total Investment" I
+    "Local Intermediate Production" Y
+    "Consumer Prices" Pc
+    "Investment Goods Prices" Pi
+    "Intermediate Goods Prices" Py
+    "Labor in Local Production" N
+    "Variables Labor in Local Production" NN
+    "Capital in Local Production" K, k
+    "Nominal Wage Rate" W 
+    "Flexible Wage Rate (Absent Rigidities" Wflex
+    "Price of Capital in Local Production"  Pk
+    "Rental Rate of Capital in Local Production" q
+    "Local-Currency Base Rate" R , R_bar
+    "Household Interest Rate" Rh 
+    "Shadow Value of Household Budget Constraint" LAMBDA
+    "Household Net Worth" Vh
+    "Disposable Labor Income" DLI
+    "Auxiliary Calibration Constant" PcC_Vh_nu0
+    "Nominal GDP" NGDP 
+    "Government Position to GDP" Bg_NGDP
+    "Government Rate" Rg
+    "Government Consumption to GDP" PcG_NGDP
+    "Government Lump-Sum Taxes to GDP" TXls_NGDP
+
+    % Reporting Ratios and Real Prices
+    "Private Consumption to GDP" PcC_NGDP
+    "Total Investmen to GDP" PiI_NGDP
+    "Disposable Labor Income to GDP" DLI_NGDP
+    "Real Disposable Labor Income" DLI_Pc
+    "Profits of Consumer Goods Distributors to GDP" PIEc_NGDP
+    "Profits of Investment Goods Distributors to GDP" PIEi_NGDP
+    "Profits of Local Intermediate Producers to GDP" PIEy_NGDP
+    "Wage Bill to GDP" WN_NGDP
+    "Capital renals to GDP" qPkk_NGDP
+    "Real Wage Rate" W_Pc
+    "Real Rental Price of Capital in Local Production" qPk_Pc
+
+    "Labor-Augmenting Productivity Index" A
+
+
+!parameters
+
+    % Parameters Determining Steady State
+    "Discount Factor" beta
+    "Inverse of Labor Supply Elasticity" eta
+    "Labor Supply Scale Parameter" upsilon
+    "Deprecition of Capital" delta
+    "Markup of Consumer Goods Distributors" mu_C
+    "Markup of Investment Goods Distributors"  mu_I
+    "Markup of Intermediate Producers" mu_Y
+    "Overhead Labor in Local Production" n
+    "Labor Share of Local Production" gamma_N
+
+    % Directly Calibrated Steady State Characteristics
+    "S/S Rate of Change in Overall Productivity" ss_dA
+    "S/S Level of Overal Productivity" ss_A
+    "S/S Rate of Change in Consumer Prices" ss_dPc
+
+    "S/S Government Position to GDP" ss_Bg_NGDP
+    "S/S Government Consumption to GDP" ss_PcG_NGDP
+    
+    % Myopia Parameters
+    "Utility from Net Worth Slope Parameter" nu
+    "Utility from Net Worth Intercept Parameter" nu0 
+    "Current Income Dependence of Consumption" psi_DLI
+    "Myopia in Final Goods Price Setting" beta_P
+    beta_K
+
+    % Transitory Parameters
+    "Habit in Consumption" psi_C
+    "Autoregression in Real WAge" rho_W
+    "Autoregression in Productivity" rho_A
+    "Price Adjustment Cost of Consumer Goods Distributors" xi_Pc
+    "Price Adjustment Cost of Investment Goods Distributors" xi_Pi
+    "Investment Adjustment Cost in Local Production" xi_I
+
+    % Moneary Policy Reaction Parameters
+    "Autoregression in Monetary Policy Function" rho_R
+    "Autoregression in Policy Neutral Rate" rho_R_bar
+    "Reaction to Inflation in Monetary Policy Function" kappa_dPc
+
+    % Fiscal Policy Reaction Parameters
+    "Self-Correction in Government Consumption" lambda_G1
+    "Stabilization of Government Debt through Government Consumption" lambda_G2
+    "Self-Correction in Lump-Sum Taxes" lambda_TXls1
+    "Stabilization of Government Debt through Lump-Sum Taxes" lambda_TXls2
+
+
+!log-variables
+
+    !all-but
+    Bg_NGDP
+    PcC_Vh_nu0
+    PcG_NGDP
+    TXls_NGDP
+    PIEc_NGDP
+    PIEi_NGDP
+    PIEy_NGDP
+
+
+!transition-shocks
+
+    shk_A
+    shk_G
+    shk_TXls
+
+
+!substitutions
+
+    G := (PcG_NGDP*NGDP/Pc);
+
+    % Investment Adjustment Cost Term in Local Production
+    xi_I0 := log(ss_dA);
+    AdjI0 := xi_I*[ log(I) - log(I{-1}) - $xi_I0$ ];
+    AdjI1 := xi_I*[ log(I{+1}) - log(I) - $xi_I0$ ];
+
+    % Consumer Price Adjustment Cost Term 
+    AdjPc0 := xi_Pc*[ log(dPc) - log(dPc{-1}) ];
+    AdjPc1 := xi_Pc*[ log(dPc{+1}) - log(dPc) ];
+
+    % Investment Price Adjustment Cost Term 
+    AdjPi0 := xi_Pi*[ log(dPi) - log(dPi{-1}) ];
+    AdjPi1 := xi_Pi*[ log(dPi{+1}) - log(dPi) ];
+
+    psi0 = (1 - (psi_DLI*&DLI_NGDP/&PcC_NGDP + psi_C));
+
+
+!transition-equations
+
+% __Consumption__
+
+    % Marginal Utility from Consumption
+    % Diff household Lagrangean w.r.t. C
+    LAMBDA*Pc*[ C - (psi_DLI*DLI_Pc + psi_C*C{-1}*ss_dA) ] = $psi0$ ...
+        !! LAMBDA*Pc*C = 1;
+
+    % Intertemporal Choice 
+    % Diff household Lagrangean w.r.t. Bh
+    LAMBDA = LAMBDA{+1}*Rh*beta ...  
+        + nu*(Pc*C/Vh - nu0)/(Pc*C);
+
+    % Disposable Labor Income
+    DLI =# W*N - TXls_NGDP*NGDP;
+
+    % Household Net Worth
+    Vh =# Pk*K + Bg_NGDP*NGDP;
+
+    % Auxiliary Calibration Ratio
+    PcC_Vh_nu0 = Pc*C/Vh - nu0;
+
+
+% __Labor Supply__
+
+    % Flexible Wage Rate
+    % Diff household Lagrangean w.r.t N
+    LAMBDA*Wflex = upsilon*(N)^eta ...
+        !! LAMBDA*W = upsilon*(N)^eta;
+
+    % Actual Wage Rate with Real Rigidities
+    log(W_Pc) = rho_W*log(ss_dA*W_Pc{-1}) + (1-rho_W)*log(Wflex/Pc) ...
+        !! W = Wflex;
+
+
+% __Capital and Investment for Local Production__
+
+    % Investment Choice
+    % Diff household Lagrangean w.r.t. I
+    Pk = Pi*(1 + $AdjI0$ - beta_K*beta*$AdjI1$) ...
+        !! Pk = Pi;
+
+    % Capital Accumulation
+    K = (1-delta)*K{-1} + I;
+
+    % Price of Capital
+    % Diff household Lagrangean w.r.t. K
+    LAMBDA*Pk = beta_K*beta*LAMBDA{+1}*[ q{+1}*Pk{+1} + Pk{+1}*(1-delta) ] ...
+        + nu*(Pc*C/Vh - nu0)*Pk/(Pc*C) ;
+
+
+% __Distributors__
+
+    % Consumer Goods Prices
+    mu_C*Py = Pc*[1 + (mu_C-1)*($AdjPc0$ - beta*beta_P*$AdjPc1$)] ...
+        !! Pc = mu_C*Py;
+
+    % Investment Goods Prices
+    mu_I*Py = Pi*[1 + (mu_I-1)*($AdjPi0$ - beta*$AdjPi1$)] ...
+        !! Pi = mu_I*Py;
+
+
+% __Intermediate Production for Local Markets__
+
+    % Variable Labor
+    NN = N - n*&N;
+
+    % Production Function
+    Y = (A*NN)^gamma_N * k^(1-gamma_N);
+
+    % Demand for Labor
+    gamma_N*Py*Y = mu_Y*W*NN;
+
+    % Demand for Capital
+    (1-gamma_N)*Py*Y = mu_Y*q*Pk*k;
+
+
+% __Monetary Authority__
+
+    log(R) = rho_R*log(R{-1}) ...
+           + (1-rho_R)*(log(R_bar) + kappa_dPc*(log(d4Pc{+3})/4-log(ss_dPc))) ...
+        !!  dPc = ss_dPc;
+
+    R_bar = rho_R_bar*R_bar{-1} + (1-rho_R_bar)*&R !! R_bar = R;
+
+
+% __Productivity and Demographics__
+
+    % Overall Productivity
+    difflog(A) = rho_A*difflog(A{-1}) + (1-rho_A)*[log(ss_dA) + shk_A] ...
+        !! A = ss_dA*A{-1};
+
+
+% __Government__
+
+    % Government Budget Constraint
+    Bg_NGDP =# Rg{t-1}*Bg_NGDP{-1}*NGDP{-1}/NGDP ...
+             - TXls_NGDP ...
+             + PcG_NGDP;
+
+    % Government Position
+    TXls_NGDP = TXls_NGDP{-1} - lambda_TXls1*(TXls_NGDP{+8} - &TXls_NGDP) ...
+                              + lambda_TXls2*(Bg_NGDP{+8} - &Bg_NGDP) + shk_TXls ...
+        !! Bg_NGDP = ss_Bg_NGDP;
+
+    % Government Consumption
+    PcG_NGDP = PcG_NGDP{-1} - lambda_G1*(PcG_NGDP{+8} - &PcG_NGDP) ...
+                            - lambda_G2*(Bg_NGDP{+8} - &Bg_NGDP) + shk_G ...
+        !! PcG_NGDP = ss_PcG_NGDP;
+
+
+% __Market Clearing__
+
+    Y = C + I + $G$;
+    k = K{-1};
+
+
+% __Nominal GDP__
+
+    NGDP =# Pc*C + PcG_NGDP*NGDP + Pi*I;
+    
+
+% __Interest Rate Arbitrage__
+
+    Rg = R;
+    Rh = R;
+
+
+% __Reporting Ratios__
+
+    PcC_NGDP =# Pc*C / NGDP;
+    PiI_NGDP = Pi*I / NGDP;
+    DLI_NGDP =# DLI / NGDP;
+
+    PIEc_NGDP =# (Pc - Py)*(C+$G$)/NGDP;
+    PIEi_NGDP =# (Pi - Py)*I / NGDP;
+    PIEy_NGDP =# (Py*Y - (W*N + q*Pk*k)) / NGDP;
+    WN_NGDP = W*N / NGDP;
+    qPkk_NGDP = q*Pk*k / NGDP;
+
+
+% __Real Variables__
+
+    W_Pc = W / Pc;
+    qPk_Pc = q*Pk / Pc;
+    DLI_Pc = DLI / Pc;
+
+
+% __Rates of Change__
+
+!for Pc, Pi, W !do
+    !variables
+        d?
+    !equations
+        d? = ?/?{-1};
+!end
+
+
+!for Pc !do
+    !variables
+        d4?
+    !equations
+        d4? = ?/?{-4};
+!end
+
+
+% __Zero Coupon Bond Yield Curve__
+
+
+!for ? = 4, 8, 20, 40 !do
+
+    !transition-variables
+        R?, r?__
+    !log-variables
+        !all-but
+        r?__
+    !transition-equations
+        log(R?) = movavg( log(R), +? );
+        r?__ =# 100*(R?^4 - 1);
+
+!end
+
+!transition-variables
+    r__
+!log-variables
+    !all-but
+    r__ 
+!transition-equations
+    r__ =# 100*(R^4 - 1);
+
+
