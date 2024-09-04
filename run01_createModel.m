@@ -39,7 +39,7 @@ m.ss_dA = 1.02^(1/4);
 m.ss_dPc = 1.025^(1/4);
 
 m.ss_Bg_NGDP = 0;
-m.ss_PcG_NGDP = 0;
+m.ss_PcG_NGDP = 0.15;
 
 
 % Transitory Parameters
@@ -86,6 +86,28 @@ m = steady( ...
     'fixLevel', {'A', 'Pc'} ...
 );
 
+ssl = access(m, "steady-level");
+ssc = access(m, "steady-change");
+par = access(m, "parameter-values");
+
+vars = access(m, "transition-variables");
+
+ss = struct();
+for n = databank.fieldNames(ssl)
+    if ismember(n, vars)
+        ss.(n) = [ssl.(n), ssc.(n)];
+    else
+        ssl = rmfield(ssl, n);
+        ssc = rmfield(ssc, n);
+    end
+end
+
+
+writematrix(jsonencode(ss), "ss.json", fileType="text", quoteStrings=false);
+writematrix(jsonencode(ssl), "ssl.json", fileType="text", quoteStrings=false);
+writematrix(jsonencode(ssc), "ssc.json", fileType="text", quoteStrings=false);
+writematrix(jsonencode(par), "par.json", fileType="text", quoteStrings=false);
+
 mr = m;
 
 
@@ -117,5 +139,6 @@ mn = solve(mn);
 %% Save Model Object for Further Use
 
 save mat/createModel.mat mr mn
+writematrix(jsonencode(mr{'parameter-values'}),"matpar.json",filetype="text",quoteStrings=false);
 
 
